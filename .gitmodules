@@ -1,0 +1,6 @@
+[submodule "nvpro_core"]
+	path = nvpro_core
+	url = https://github.com/nvpro-samples/nvpro_core.git
+[submodule "nv_cluster_lod_builder"]
+	path = nv_cluster_lod_builder
+	url = https://github.com/nvpro-samples/nv_cluster_lod_builder.git

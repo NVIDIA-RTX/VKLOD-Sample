@@ -1,0 +1,15 @@
+bin_x64/
+build*/
+.cache/
+.vscode/
+*.code-workspace
+log_nvprosample.txt
+ucode.bin
+ucode.elf
+*.nv-gpudmp
+*.nv-gpudmp.json
+*.nvdbg
+*.dat
+*.spv
+*.spva
+zbsgfxpack.lua
