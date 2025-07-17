@@ -15,9 +15,12 @@
  * limitations under the License.
  */
 
+#include <chrono>
+#include <cmath>
 #include <filesystem>
 #include <glm/gtx/hash.hpp>
 #include <gltf_view.hpp>
+#include <iostream>
 #include <nvh/alignment.hpp>
 #include <nvvk/error_vk.hpp>
 #include <ranges>
@@ -25,9 +28,40 @@
 #include <sample_raytracing_objects.hpp>
 #include <scene.hpp>
 #include <stdexcept>
+#include <string>
 #include <type_traits>
 #include <unordered_map>
 #include <vulkan/vulkan_core.h>
+
+// Scoped profiler for quick and coarse results
+// https://stackoverflow.com/questions/31391914/timing-in-an-elegant-way-in-c
+class Stopwatch
+{
+public:
+  Stopwatch(std::string name)
+      : m_name(std::move(name))
+      , m_beg(std::chrono::high_resolution_clock::now())
+  {
+  }
+  ~Stopwatch()
+  {
+    try
+    {
+      auto end = std::chrono::high_resolution_clock::now();
+      auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end - m_beg);
+      std::cout << m_name << " : " << dur.count() << " ms\n";
+    }
+    catch(const std::exception& e)
+    {
+      // Print and ignore, to satisfy static analysis
+      std::cerr << "Error in Stopwatch: " << e.what() << "\n";
+    }
+  }
+
+private:
+  std::string                                                 m_name;
+  std::chrono::time_point<std::chrono::high_resolution_clock> m_beg;
+};
 
 // Returns the point on the AABB corner given an index in [0, 7]
 // where the bits represent the x, y, and z coordinates of the corner
@@ -106,11 +140,11 @@ nvclusterlod::LocalizedLodMesh makeLodMesh(nvclusterlod_Context        context,
       .groupConfig      = {},
       .decimationFactor = lodConfig.lodLevelDecimationFactor,
   };
-  input.clusterConfig.minClusterSize = (lodConfig.clusterSize * 3) / 4;
-  input.clusterConfig.maxClusterSize = lodConfig.clusterSize;
-  input.clusterConfig.maxClusterVertices = input.clusterConfig.maxClusterSize;
-  input.groupConfig.minClusterSize   = (lodConfig.clusterGroupSize * 3) / 4;
-  input.groupConfig.maxClusterSize   = lodConfig.clusterGroupSize;
+  input.clusterConfig.minClusterSize     = (lodConfig.clusterSize * 3) / 4;
+  input.clusterConfig.maxClusterSize     = lodConfig.clusterSize;
+  input.clusterConfig.maxClusterVertices = 256u;  // VK_NV_cluster_acceleration_structure limit
+  input.groupConfig.minClusterSize       = (lodConfig.clusterGroupSize * 3) / 4;
+  input.groupConfig.maxClusterSize       = lodConfig.clusterGroupSize;
 
   nvclusterlod::LocalizedLodMesh localizedLodMesh;
   nvclusterlod_Result            result = nvclusterlod::generateLocalizedLodMesh(context, input, localizedLodMesh);
@@ -545,6 +579,7 @@ SceneFile::SceneFile(const fs::path& gltfPath, const fs::path& cachePath, const 
   // Create the render cache if it doesn't exist
   if(!memoryMap)
   {
+    Stopwatch stopwatch("Processing " + path.string());
     fs::path tmpPath = cachePath;
     tmpPath.replace_extension(".creating");  // temporary output in case we fail/crash
     file_writer  writer(tmpPath, 100llu << 30 /* 100GB max. virtual address space */);

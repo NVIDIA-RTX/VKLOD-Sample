@@ -2,19 +2,31 @@
 
 ![preview](doc/clusters.jpg)
 
-This is a Vulkan app that renders large scenes with real time ray tracing using
-NVIDIA RTX Mega Geometry. It streams continuous level of detail, like [Nanite's
-virtual
+This is a Vulkan application that renders large scenes with real time ray
+tracing using NVIDIA RTX Mega Geometry. It streams continuous level of detail
+from disk, like [Nanite's virtual
 geometry](https://dev.epicgames.com/documentation/en-us/unreal-engine/nanite-virtualized-geometry-in-unreal-engine)
-but for ray tracing.
+but for ray tracing. To run it, download and [build](#building-and-dependencies)
+from source.
+
+A series of Mega Geometry and *cluster acceleration structure* dedicated Vulkan
+samples are also available in the
+[nvpro-samples](https://github.com/nvpro-samples) collection, tailored to its
+framework. These other samples exemplify the same technology, but in a different
+flavor of C++:
+
+- [**vk_lod_clusters**](https://github.com/nvpro-samples/vk_lod_clusters)<br/>
+  Similar in goal to this sample, see [unique features](#unique-features), but
+  written in a different C++ coding style, aligned with nvpro-samples. Readers
+  can choose the approach that suits their preference.
+- [vk_animated_clusters](https://github.com/nvpro-samples/vk_animated_clusters)
+- [vk_tessellated_clusters](https://github.com/nvpro-samples/vk_tessellated_clusters)
+- [vk_partitioned_tlas](https://github.com/nvpro-samples/vk_partitioned_tlas)
 
 Other RTX Mega Geometry samples:
 
-- [RTX Mega Geometry](https://github.com/NVIDIA-RTX/RTXMG)
-- [vk_lod_clusters](https://github.com/nvpro-samples/vk_lod_clusters)
-- [vk_animated_clusters](https://github.com/nvpro-samples/vk_animated_clusters)
-- [vk_tessellated_clusters](https://github.com/nvpro-samples/vk_tessellated_clusters)
-- [optix-subd](https://github.com/nvidia/optix-subd)
+- [RTX Mega Geometry](https://github.com/NVIDIA-RTX/RTXMG) (DX12 and Vulkan abstraction)
+- [optix-subd](https://github.com/nvidia/optix-subd) (Optix)
 
 ## NVIDIA RTX Mega Geometry
 
@@ -148,6 +160,13 @@ extension.
       pointers in the per-mesh buffer of cluster group pointers. See
       [stream_modify_groups.comp.glsl](shaders/stream_modify_groups.comp.glsl).
 
+  Steps 8, 9 and 10 must be separated due to a readback and linearization of
+  CLAS memory on the GPU. While simpler, this introduces a frame of streaming
+  latency to this demo. The steps could be combined into a single command buffer
+  if using a GPU based allocator (i.e. malloc() inside a compute shader). The
+  `vk_lod_clusters` sample does this with a [fixed-size
+  allocator](https://github.com/nvpro-samples/vk_lod_clusters#gpu-driven-clas-allocation).
+
 ## Reading the code
 
 Some key parts to focus on:
@@ -173,6 +192,11 @@ Some key parts to focus on:
 Much of the `src/sample_*` code is boilerplate vulkan and can be ignored. As is
 setup and rendering in `main.cpp` and `renderer_*`.
 
+This demo leans towards RAII and layered utilities. For readers who prefer more
+direct inline Vulkan API calls, you might find some equivalent functionality in
+[**vk_lod_clusters**](https://github.com/nvpro-samples/vk_lod_clusters) more to
+your liking.
+
 ## Building and Dependencies
 
 An NVIDIA RTX GPU is required to run the demo. The Vulkan implementation
@@ -181,7 +205,7 @@ An NVIDIA RTX GPU is required to run the demo. The Vulkan implementation
 
 This demo uses [CMake](https://cmake.org/download/) and requires the [Vulkan
 SDK](https://vulkan.lunarg.com/). It is tested on Windows (with [Visual
-Studio](https://visualstudio.microsoft.com/vs/) 2022) and Linux (gcc 13). It
+Studio](https://visualstudio.microsoft.com/vs/) 2022) and Linux (gcc 14). It
 uses git submodules and fetch_content for other dependencies. After cloning,
 run:
 
@@ -200,8 +224,14 @@ cmake --build build --parallel
 
 For **Windows** you may be more comfortable with `cmake-gui`.
 
+Drag/drop your own `.gltf` files over the window or launch with `--mesh
+<mesh.gltf>`. Processing a big scenes can take some time, e.g. on the order of a
+minutes. By default a `rendercache_<mesh.gltf>.dat` cache is created next to the
+executable so a subsequent launch will be faster. The location can be set with
+`--cache-dir`.
+
 Two larger scenes based on models from
-[https://threedscans.com/](https://threedscans.com/) are available to play with. Extract and drag/drop the `.gltf` or launch with `--mesh <mesh.gltf>`:
+[https://threedscans.com/](https://threedscans.com/) are available to play with:
 
 - [threedscans_animals](http://developer.download.nvidia.com/ProGraphics/nvpro-samples/threedscans_animals.zip)
   (7.9 M Triangles, 290 MB zip)

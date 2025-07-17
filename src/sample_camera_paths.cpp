@@ -310,12 +310,19 @@ CameraPathsElement::CameraPathsElement()
 
 CameraPathsElement::~CameraPathsElement()
 {
-  nlohmann::json outputJson;
-  for(const auto& path : m_cameraPaths)
-    outputJson.push_back(path.toJSON());
-  std::ofstream outFile(PathsFilename);
-  outFile << outputJson.dump(4);  // Write JSON with 4-space indentation
-  outFile.close();
+  try
+  {
+    nlohmann::json outputJson;
+    for(const auto& path : m_cameraPaths)
+      outputJson.push_back(path.toJSON());
+    std::ofstream outFile(PathsFilename);
+    outFile << outputJson.dump(4);  // Write JSON with 4-space indentation
+    outFile.close();
+  }
+  catch(const std::exception& e)
+  {
+    fprintf(stderr, "Error writing camera paths: %s\n", e.what());
+  }
 }
 
 void CameraPathsElement::onUIRender()

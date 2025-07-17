@@ -1,5 +1,5 @@
 /*
- * SPDX-FileCopyrightText: Copyright (c) 2024 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+ * SPDX-FileCopyrightText: Copyright (c) 2024-2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
  * SPDX-License-Identifier: Apache-2.0
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
@@ -58,7 +58,7 @@ public:
     other.m_handle = VK_NULL_HANDLE;
   }
   VulkanHandle& operator=(const VulkanHandle& other) = delete;
-  VulkanHandle& operator=(VulkanHandle&& other)
+  VulkanHandle& operator=(VulkanHandle&& other) noexcept
   {
     destroy();
     m_device       = other.m_device;
@@ -82,11 +82,11 @@ private:
 // Adds a constructor supporting many vkCreate*() calls that take a
 // Vk*CreateInfo struct
 template <class T, class CreateInfo, auto CreateFunc, auto DestroyFunc>
-class ConstructingVulkanHandle : public VulkanHandle<T, DestroyFunc>
+class VulkanObject : public VulkanHandle<T, DestroyFunc>
 {
 public:
   using VulkanHandle<T, DestroyFunc>::VulkanHandle;
-  ConstructingVulkanHandle(VkDevice device, const CreateInfo& createInfo)
+  VulkanObject(VkDevice device, const CreateInfo& createInfo)
       : VulkanHandle<T, DestroyFunc>(device, create(device, createInfo))
   {
   }
@@ -100,12 +100,11 @@ private:
   }
 };
 
-using Semaphore = ConstructingVulkanHandle<VkSemaphore, VkSemaphoreCreateInfo, vkCreateSemaphore, vkDestroySemaphore>;
-using CommandPool = ConstructingVulkanHandle<VkCommandPool, VkCommandPoolCreateInfo, vkCreateCommandPool, vkDestroyCommandPool>;
-using PipelineLayout =
-    ConstructingVulkanHandle<VkPipelineLayout, VkPipelineLayoutCreateInfo, vkCreatePipelineLayout, vkDestroyPipelineLayout>;
-using Pipeline = VulkanHandle<VkPipeline, vkDestroyPipeline>;
-using ShaderModule = ConstructingVulkanHandle<VkShaderModule, VkShaderModuleCreateInfo, vkCreateShaderModule, vkDestroyShaderModule>;
+using Semaphore   = VulkanObject<VkSemaphore, VkSemaphoreCreateInfo, vkCreateSemaphore, vkDestroySemaphore>;
+using CommandPool = VulkanObject<VkCommandPool, VkCommandPoolCreateInfo, vkCreateCommandPool, vkDestroyCommandPool>;
+using PipelineLayout = VulkanObject<VkPipelineLayout, VkPipelineLayoutCreateInfo, vkCreatePipelineLayout, vkDestroyPipelineLayout>;
+using Pipeline     = VulkanHandle<VkPipeline, vkDestroyPipeline>;
+using ShaderModule = VulkanObject<VkShaderModule, VkShaderModuleCreateInfo, vkCreateShaderModule, vkDestroyShaderModule>;
 
 inline Semaphore makeTimelineSemaphore(VkDevice device, uint64_t initialValue)
 {
